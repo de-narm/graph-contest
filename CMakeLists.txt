@@ -2,6 +2,9 @@ cmake_minimum_required (VERSION 3.15.3)
 
 project(Graph-Drawing)
 
+#set(CMAKE_CXX_FLAGS "-O0 -Wall -Wextra -Werror -pedantic -g -DOGDF_DEBUG")
+set(CMAKE_CXX_FLAGS "-O3 -Wall -Wextra -Werror -pedantic")
+
 set(OGDF_CONFIG_SEARCH_PATH PATH "~/Files/Libs/ogdf")
 
 find_package(OGDF CONFIG PATHS ${OGDF_CONFIG_SEARCH_PATH})

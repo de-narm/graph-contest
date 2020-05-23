@@ -1,2 +1,3 @@
 build/
-*.json.out
+*.out.json
+*.svg

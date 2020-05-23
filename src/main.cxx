@@ -1,21 +1,23 @@
 #include <string.h>
 #include <string>
-#include <vector>
 #include <iostream>
 #include <fstream>
 #include <json/json.h>
 #include <json/value.h>
 #include <experimental/filesystem>
 
-#include <ogdf/basic/graph_generators.h>
+#include <ogdf/basic/GraphAttributes.h>
 #include <ogdf/basic/Layout.h>
 #include <ogdf/basic/LayoutStatistics.h>
+#include <ogdf/fileformats/GraphIO.h>
+
+#include "algorithm.hxx"
 
 namespace fs = std::experimental::filesystem;
 using namespace ogdf;
 
 void handle_graph(std::string path) {
-	// reading josn
+	// reading json
 	std::ifstream in(path, std::ifstream::binary);
 	Json::Value json;
 	in >> json;	
@@ -26,47 +28,49 @@ void handle_graph(std::string path) {
 	GraphAttributes GA(G,
 	GraphAttributes::nodeGraphics |
 	GraphAttributes::edgeGraphics |
-	GraphAttributes::nodeId |
-	GraphAttributes::nodeLabel |
-	GraphAttributes::edgeStyle |
 	GraphAttributes::nodeStyle |
-	GraphAttributes::nodeTemplate);
+	GraphAttributes::edgeStyle |
+	GraphAttributes::nodeId);
 
     uint32_t width = json["width"].asUInt();
     uint32_t height = json["height"].asUInt();
 
     // fill graph with json data
-    std::vector<node> nodes(0);
     for (Json::Value j : json["nodes"]) {
-         node n = G.newNode(j["id"].asUInt());
+         node n = G.newNode();
          GA.idNode(n) = j["id"].asUInt();
-         GA.x(n) = j["x"].asUInt();
-         GA.y(n) = j["y"].asUInt();
-         nodes.push_back(n);
+         // current base layout ignores initial values
+         //GA.x(n) = j["x"].asUInt();
+         //GA.y(n) = j["y"].asUInt();
+         GA.width(n) = 0.1;
+         GA.height(n) = 0.1;
+         GA.strokeWidth(n) = 0.1;
     } 
 
+    Array<node, int> nodes(G.numberOfNodes());
+    G.allNodes(nodes);
     for (Json::Value j : json["edges"]) {
          edge e = G.newEdge(nodes[j["source"].asUInt()],
-                            nodes[j["target"].asUInt()],
-                            j["id"].asUInt());
+                            nodes[j["target"].asUInt()]);
+         GA.strokeWidth(e) = 0.02;
     }
 
 	// call upon graph algorithm
+    reduce_crossings(GA, nodes, width, height);
 
 	// terminal output
-    GA.setAllWidth(0.5);
-    GA.setAllHeight(0.5);
-
 	auto crossings = LayoutStatistics::numberOfCrossings(GA);
-    int cross = crossings[0];
+    int cross = Math::sum(crossings);
     if (cross > 0) 
-      cross /= 2;
+         cross /= 2;
+
 	auto overlaps = LayoutStatistics::numberOfNodeOverlaps(GA);
-    int over = overlaps[0];
+    int over = Math::sum(overlaps);
     if (over > 0)
-        over /= 2;
+         over /= 2;
+
 	auto nodecrossings = LayoutStatistics::numberOfNodeCrossings(GA);
-    int ncross = nodecrossings[0];
+    int ncross = Math::sum(nodecrossings);
 
     int downward = 0;
     Array<edge, int> edges(G.numberOfEdges());
@@ -76,12 +80,41 @@ void handle_graph(std::string path) {
             ++downward;
     }
 
+    uint32_t min_x = height;
+    uint32_t max_x = 0;
+    uint32_t min_y = width;
+    uint32_t max_y = 0;
+    uint32_t x;
+    uint32_t y;
+    for (node n : nodes) {
+        x = GA.x(n);
+        y = GA.y(n);
+        if (x > max_x)
+            max_x = x;
+        if (x < min_x)
+            min_x = x;
+        if (y > max_y)
+            max_y = y;
+        if (y < min_y)
+            min_y = y;
+    }
+
+    double min_angle = Math::minValue(LayoutStatistics::angles(GA));
+
     std::cout << "-------------------------------------" << std::endl;
 	std::cout << "Graph: " << path << std::endl;
 	std::cout << cross << " crossing(s)!" << std::endl;
-	std::cout << ncross << " node crossing(s)!" << std::endl;
-	std::cout << over << " overlap(s)!" << std::endl;
-	std::cout << downward << " not upward facing edge(s)!" << std::endl;
+    if (ncross != 0 || over != 0 || downward != 0 ||
+        max_x > height || max_y > width) {
+	    std::cout << min_angle << " min radian angle!" << std::endl;
+    	std::cout << ncross << " node crossing(s)!" << std::endl;
+        std::cout << over << " overlap(s)!" << std::endl;
+        std::cout << downward << " not upward facing edge(s)!" << std::endl;
+        std::cout << "X: [" << min_x << "," << max_x << "] (" << height << ")" 
+                  << std::endl;
+        std::cout << "Y: [" << min_y << "," << max_y << "] (" << width << ")" 
+                  << std::endl;
+    }
 
     // save graph in json format 
     uint32_t id;
@@ -97,8 +130,10 @@ void handle_graph(std::string path) {
 	std::ofstream out(path, std::ifstream::binary);
     out << json;
 
+    // svg image
+    GraphIO::write(GA, path.append(".svg"), GraphIO::drawSVG);
+
     // exiting
-    nodes.clear();
 }
 
 void traverse_dir(std::string path) {
