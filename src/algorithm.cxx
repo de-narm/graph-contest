@@ -3,38 +3,44 @@
 using namespace ogdf;
 typedef LayoutStatistics LS;
 
-uint32_t random_displacement(GraphAttributes& GA, Array<node>& nodes,
-                             ArrayBuffer<int, int>& crossings,
-                             uint32_t width, uint32_t height, uint32_t steps) {
+void random_displacement(GraphAttributes& GA, Array<node>& nodes,
+                         Array<edge>& edges,
+                         uint32_t width, uint32_t height, uint32_t steps) {
     // vars used throughout for temp values to revert positions etc.
     uint32_t x,y,id;
+    // vars to compare positions
+    uint32_t old_overlaps, old_nodecrossings, old_crossings;
     uint32_t size = nodes.size();
 
-    // current min values to check for improvements later
-	uint32_t min_overlaps = Math::sum(LS::numberOfNodeOverlaps(GA));
-	uint32_t min_nodecrossings = Math::sum(LS::numberOfNodeCrossings(GA));
-	uint32_t min_crossings = Math::sum(LS::numberOfCrossings(GA));
-
     // limits for new position
-    List<EdgeElement*> edges;
-    uint32_t lower_max;
-    uint32_t upper_min;
+    List<EdgeElement*> con_edges;
+    int32_t lower_max, upper_min;
 
     // change a random node randomly, keep if graph is improved
     for (uint32_t i = 0; i < steps; ++i) {
         id = rand() % size;
+
+        // current min values to check for improvements later
+        old_overlaps = node_overlaps(GA, nodes, nodes[id]);
+        old_nodecrossings = node_crossings(GA, edges, nodes[id]);
+        old_crossings = crossings(GA, edges, nodes[id]);
+
+        // LOCAL MINIMA?!
+        if (old_overlaps == 0 && old_nodecrossings == 0 && old_crossings == 0) 
+            continue;
+
         x = GA.x(nodes[id]);
         y = GA.y(nodes[id]);
 
         // test all upper and lower nodes connected by an edge for limits
-        lower_max = 0;
-        nodes[id]->inEdges(edges);
-        for (edge e : edges)
+        lower_max = -1;
+        nodes[id]->inEdges(con_edges);
+        for (edge e : con_edges)
             if (GA.y(e->source()) > lower_max)
                 lower_max = GA.y(e->source());
-        upper_min = height;
-        nodes[id]->outEdges(edges);
-        for (edge e : edges)
+        upper_min = (height + 1);
+        nodes[id]->outEdges(con_edges);
+        for (edge e : con_edges)
             if (GA.y(e->target()) < upper_min)
                 upper_min = GA.y(e->target());
         GA.x(nodes[id]) = rand() % (width + 1);
@@ -42,31 +48,24 @@ uint32_t random_displacement(GraphAttributes& GA, Array<node>& nodes,
         if (upper_min > lower_max) 
             GA.y(nodes[id]) = lower_max + (rand() % (upper_min - lower_max));
 
-        // order of checks is important, numberOfCrossings can segfault
-        uint32_t overlaps = Math::sum(LS::numberOfNodeOverlaps(GA));
-        if (overlaps <= min_overlaps) {
-            uint32_t nodecrossings = Math::sum(LS::numberOfNodeCrossings(GA));
-            if (nodecrossings <= min_nodecrossings) {
-                double min_angle = Math::minValue(LS::angles(GA));
-                if (min_angle > 0.09) {
-                    uint32_t crossings = Math::sum(LS::numberOfCrossings(GA));
-                    if (crossings <= min_crossings) {
-                        min_overlaps = overlaps;
-                        min_nodecrossings = nodecrossings;
-                        min_crossings = crossings;
-                        continue;
-                    }
+        // check for improvements
+        if (node_overlaps(GA, nodes, nodes[id]) <= old_overlaps) {
+            if (node_crossings(GA, edges, nodes[id]) <= old_nodecrossings) {
+                if (crossings(GA, edges, nodes[id]) <= old_crossings) {
+                    continue;
                 }
+                // regardless of crossings, keep changes to improve correctness
+                if (old_nodecrossings > 0)
+                    continue;
             }
+            if (old_overlaps > 0) 
+                continue;
         }
 
         // revert changes
         GA.x(nodes[id]) = x;
         GA.y(nodes[id]) = y;
     }
-
-    uint32_t sum = Math::sum(crossings);
-    return (sum > 0)?(sum / 2):sum;
 }
 
 void base_layout(GraphAttributes& GA, Array<node>& nodes, 
@@ -126,12 +125,12 @@ void base_layout(GraphAttributes& GA, Array<node>& nodes,
 }
 
 void reduce_crossings(GraphAttributes& GA, Array<node>& nodes, 
-                          //Array<edge>& edges, 
-                          uint32_t width, 
-                          uint32_t height) {
+                      Array<edge>& edges, 
+                      uint32_t width, 
+                      uint32_t height) {
     // initial drawing
     base_layout(GA, nodes, width, height);
 
     // move nodes to random location within certain boundaries
-    //return random_displacement(GA, nodes, crossings, width, height, 0);
+    random_displacement(GA, nodes, edges, width, height, 900000);
 }

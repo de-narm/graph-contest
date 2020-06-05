@@ -59,8 +59,7 @@ void handle_graph(std::string path) {
     G.allEdges(edges);
 
 	// call upon graph algorithm
-    //reduce_crossings(GA, nodes, edges, width, height);
-    reduce_crossings(GA, nodes, width, height);
+    reduce_crossings(GA, nodes, edges, width, height);
 
 	// terminal output
     std::cout << "-------------------------------------" << std::endl;
@@ -70,9 +69,9 @@ void handle_graph(std::string path) {
     std::cout << all_node_crossings(GA, nodes, edges) << " node crossing(s)!"
               << std::endl;
     std::cout << all_node_overlaps(GA, nodes) << " overlap(s)!" << std::endl;
-    if (upward_facing(GA, edges))
+    if (!upward_facing(GA, edges))
         std::cout << "Not upward facing!" << std::endl;
-    if (within_box(GA, nodes, height, width))
+    if (!within_box(GA, nodes, height, width))
         std::cout << "Not within box!" << std::endl;
 
     // save graph in json format 

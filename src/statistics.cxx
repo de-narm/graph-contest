@@ -24,22 +24,15 @@ uint32_t all_node_overlaps(GraphAttributes& GA,
         sum += node_overlaps(GA, nodes, m);
     }
 
-    return sum / 2;
+    return (sum > 0)?sum / 2:0;
 }
 
 uint32_t node_crossings(GraphAttributes& GA, 
                         Array<edge>& edges, 
                         node& n) {
     uint32_t crossings = 0;
-    uint32_t x,y;
+    int32_t x,y;
     for (edge e : edges) {
-        // point == source/target?
-        if (((GA.x(n) == GA.x(e->source())) && 
-            (GA.y(n) == GA.y(e->source()))) ||
-            ((GA.x(n) == GA.x(e->target())) && 
-            (GA.y(n) == GA.y(e->target()))))
-            continue;
-
         // get vector of edge
         y = GA.y(e->target()) - GA.y(e->source());
         x = GA.x(e->target()) - GA.x(e->source());
@@ -50,13 +43,11 @@ uint32_t node_crossings(GraphAttributes& GA,
             (((GA.x(n) - GA.x(e->source())) / x) &&
             (y == 0) && (GA.y(n) == GA.y(e->source()))) || 
             (((GA.y(n) - GA.y(e->source())) / y) &&
-            (x == 0) && (GA.x(n) == GA.x(e->source()))))
+            (x == 0) && (GA.x(n) == GA.x(e->source())))) {
             // is the point within segment?
-            if ((GA.y(e->source()) >= GA.y(n) 
-               && GA.y(e->target()) <= GA.y(n)) 
-               || (GA.y(e->source()) <= GA.y(n) 
-               && GA.y(e->target()) >= GA.y(n))) 
-                ++crossings;
+            if ((GA.y(e->source()) < GA.y(n)) 
+                && (GA.y(e->target()) > GA.y(n))) 
+                ++crossings;}
     }
 
     return crossings;
@@ -146,15 +137,15 @@ uint32_t intersection_test(GraphAttributes& GA,
 	t2.y = GA.y(e2->target());
 
     // bounding box intersection?
-    if (s1.x <= t2.x &&
-        t1.x >= s2.x &&
-        s1.y <= t2.y &&
-        t1.y >= s2.y) { 
+    if (std::min(s1.x, t1.x) < std::max(t2.x, s2.x) &&
+        std::max(t1.x, s1.x) > std::min(s2.x, t2.x) &&
+        std::min(s1.y, t1.y) < std::max(t2.y, s2.y) &&
+        std::max(t1.y, s1.y) > std::min(s2.y, t2.y)) { 
         // not with same nodes connected?
         if (s1 == s2 || s1 == t2 || t1 == s2 || t1 == t2)
             return 0;
         // intersection?
-        if (doIntersect(s1, t1, s2, t2)) 
+        if (doIntersect(s1, t1, s2, t2))
             return 1;
     }
 
@@ -192,7 +183,6 @@ uint32_t crossings(ogdf::GraphAttributes& GA,
 		}	
 	}
 
-    // once the edge crosses itself
 	return sum;
 }
 
@@ -203,8 +193,9 @@ uint32_t all_crossings(ogdf::GraphAttributes& GA,
 	for (node n : nodes) {
 		sum += crossings(GA, edges, n);
 	}
-
-    return sum / 2;
+    
+    // /4 since each edge is tested twice and each crossing contains two edges 
+    return (sum > 0)?sum / 4:0;
 }
 
 bool upward_facing(ogdf::GraphAttributes& GA, 

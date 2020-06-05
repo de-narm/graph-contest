@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cmath>
+
 #include <ogdf/basic/graph_generators.h>
 #include <ogdf/basic/Layout.h>
 #include <ogdf/basic/LayoutStatistics.h>
@@ -33,8 +35,8 @@ uint32_t node_crossings(ogdf::GraphAttributes& GA,
                         ogdf::node& n);
 
 uint32_t all_node_crossings(ogdf::GraphAttributes& GA, 
-                        ogdf::Array<ogdf::node>& nodes,
-                        ogdf::Array<ogdf::edge>& edges);
+                            ogdf::Array<ogdf::node>& nodes,
+                            ogdf::Array<ogdf::edge>& edges);
 
 bool onSegment(Point p, Point q, Point r);
 

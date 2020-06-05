@@ -10,10 +10,11 @@
 
 #include "statistics.hxx"
 
-uint32_t random_displacement(ogdf::GraphAttributes& GA, 
-                             ogdf::ArrayBuffer<int, int>& crossings,
-                             ogdf::Array<ogdf::node>& nodes,
-                             uint32_t width, uint32_t height);
+void random_displacement(ogdf::GraphAttributes& GA, 
+                         ogdf::Array<ogdf::node>& nodes,
+                         ogdf::Array<ogdf::edge>& edges,
+                         uint32_t width, uint32_t height,
+                         uint32_t steps);
 
 void base_layout(ogdf::GraphAttributes& GA, 
                  ogdf::Array<ogdf::node>& nodes,
@@ -21,5 +22,5 @@ void base_layout(ogdf::GraphAttributes& GA,
 
 void reduce_crossings(ogdf::GraphAttributes& GA, 
                       ogdf::Array<ogdf::node>& nodes,
-                      //ogdf::Array<ogdf::edge>& edges,
+                      ogdf::Array<ogdf::edge>& edges,
                       uint32_t width, uint32_t height);
