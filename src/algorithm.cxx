@@ -43,8 +43,18 @@ void random_displacement(GraphAttributes& GA, Array<node>& nodes,
         for (edge e : con_edges)
             if (GA.y(e->target()) < upper_min)
                 upper_min = GA.y(e->target());
-        GA.x(nodes[id]) = rand() % (width + 1);
         ++lower_max; // inc because only inbetween numbers are wanted
+    
+        if (upper_min > lower_max) {
+        uint32_t diff = (upper_min - lower_max);
+        GA.x(nodes[id]) = GA.x(nodes[id]) - (diff / 2) + (rand() % diff);
+        if (GA.x(nodes[id]) > width)
+            GA.x(nodes[id]) = width;
+        if (GA.x(nodes[id]) < 0)
+            GA.x(nodes[id]) = 0;} else {
+        GA.x(nodes[id]) = rand() % (width + 1);
+            }
+
         if (upper_min > lower_max) 
             GA.y(nodes[id]) = lower_max + (rand() % (upper_min - lower_max));
 
