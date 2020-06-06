@@ -81,12 +81,12 @@ bool onSegment(Point p, Point q, Point r)
 // 0 --> p, q and r are colinear 
 // 1 --> Clockwise 
 // 2 --> Counterclockwise 
-int orientation(Point p, Point q, Point r) 
+int32_t orientation(Point p, Point q, Point r) 
 { 
     // See https://www.geeksforgeeks.org/orientation-3-ordered-points/ 
     // for details of below formula. 
-    int val = (q.y - p.y) * (r.x - q.x) - 
-              (q.x - p.x) * (r.y - q.y); 
+    int64_t val = ((int64_t) (q.y - p.y) * (r.x - q.x)) - 
+                  ((int64_t) (q.x - p.x) * (r.y - q.y)); 
   
     if (val == 0) return 0;  // colinear 
   
@@ -99,10 +99,10 @@ bool doIntersect(Point p1, Point q1, Point p2, Point q2)
 { 
     // Find the four orientations needed for general and 
     // special cases 
-    int o1 = orientation(p1, q1, p2); 
-    int o2 = orientation(p1, q1, q2); 
-    int o3 = orientation(p2, q2, p1); 
-    int o4 = orientation(p2, q2, q1); 
+    int32_t o1 = orientation(p1, q1, p2); 
+    int32_t o2 = orientation(p1, q1, q2); 
+    int32_t o3 = orientation(p2, q2, p1); 
+    int32_t o4 = orientation(p2, q2, q1); 
   
     // General case 
     if (o1 != o2 && o3 != o4) 
@@ -200,7 +200,7 @@ uint32_t all_crossings(ogdf::GraphAttributes& GA,
 
 bool upward_facing(ogdf::GraphAttributes& GA, 
                    ogdf::Array<ogdf::edge>& edges) {
-    int downward = 0;
+    int32_t downward = 0;
     for (edge e : edges) {
         if (GA.y(e->source()) >= GA.y(e->target()))
             ++downward;

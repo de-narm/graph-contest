@@ -132,5 +132,5 @@ void reduce_crossings(GraphAttributes& GA, Array<node>& nodes,
     base_layout(GA, nodes, width, height);
 
     // move nodes to random location within certain boundaries
-    random_displacement(GA, nodes, edges, width, height, 900000);
+    random_displacement(GA, nodes, edges, width, height, 800000);
 }

@@ -7,8 +7,8 @@
 #include <ogdf/basic/LayoutStatistics.h>
 
 struct Point{ 
-    int x; 
-    int y; 
+    int32_t x; 
+    int32_t y; 
 
     bool operator==(Point a) {
         if (a.x == x && a.y == y)
@@ -40,7 +40,7 @@ uint32_t all_node_crossings(ogdf::GraphAttributes& GA,
 
 bool onSegment(Point p, Point q, Point r);
 
-int orientation(Point p, Point q, Point r); 
+int32_t orientation(Point p, Point q, Point r); 
 
 bool doIntersect(Point p1, Point q1, Point p2, Point q2);
 

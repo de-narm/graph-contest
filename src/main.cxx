@@ -47,7 +47,7 @@ void handle_graph(std::string path) {
          GA.height(n) = 0.1;
          GA.strokeWidth(n) = 0.1;
     } 
-    Array<node, int> nodes(G.numberOfNodes());
+    Array<node, int32_t> nodes(G.numberOfNodes());
     G.allNodes(nodes);
 
     for (Json::Value j : json["edges"]) {
@@ -55,7 +55,7 @@ void handle_graph(std::string path) {
                             nodes[j["target"].asUInt()]);
          GA.strokeWidth(e) = 0.02;
     }
-    Array<edge, int> edges(G.numberOfEdges());
+    Array<edge, int32_t> edges(G.numberOfEdges());
     G.allEdges(edges);
 
 	// call upon graph algorithm
@@ -79,8 +79,8 @@ void handle_graph(std::string path) {
     for (node n : nodes) {
         id = GA.idNode(n);
         // just in case they aren't sorted
-        json["nodes"][id]["x"] = GA.x(n);
-        json["nodes"][id]["y"] = GA.y(n);
+        json["nodes"][id]["x"] = (int32_t) GA.x(n);
+        json["nodes"][id]["y"] = (int32_t) GA.y(n);
     } 
     
     path.replace(path.end()-4, path.end(), "out.json");
