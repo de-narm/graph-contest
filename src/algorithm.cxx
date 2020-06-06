@@ -25,7 +25,7 @@ void random_displacement(GraphAttributes& GA, Array<node>& nodes,
         old_nodecrossings = node_crossings(GA, edges, nodes[id]);
         old_crossings = crossings(GA, edges, nodes[id]);
 
-        // LOCAL MINIMA?!
+        // not moving 0-nodes has proven better for smaller graphs
         if (old_overlaps == 0 && old_nodecrossings == 0 && old_crossings == 0) 
             continue;
 
