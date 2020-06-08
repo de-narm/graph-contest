@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cmath>
+#include <omp.h>
 
 #include <ogdf/basic/graph_generators.h>
 #include <ogdf/basic/Layout.h>

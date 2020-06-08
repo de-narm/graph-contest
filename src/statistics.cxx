@@ -64,7 +64,9 @@ uint32_t all_node_crossings(GraphAttributes& GA,
     return sum;
 }
 
-// taken from https://www.geeksforgeeks.org/check-if-two-given-line-segments-intersect/
+// mostly taken from 
+// https://www.geeksforgeeks.org/check-if-two-given-line-segments-intersect/
+
 // Given three colinear points p, q, r, the function checks if 
 // point q lies on line segment 'pr' 
 bool onSegment(Point p, Point q, Point r) 
@@ -167,19 +169,29 @@ uint32_t crossings(ogdf::GraphAttributes& GA,
     List<EdgeElement*>* edge_out = new List<EdgeElement*>();
     n1->adjEdges(*edge_out);
 
-	for (EdgeElement* e2 : *edge_in) {
-		t1.x = GA.x(e2->source());
-		t1.y = GA.y(e2->source());
+    omp_set_num_threads(4);
+
+	for (EdgeElement* e1 : *edge_in) {
+		t1.x = GA.x(e1->source());
+		t1.y = GA.y(e1->source());
+        #pragma omp parallel for 
 		for (edge e2 : edges) {
-			sum += intersection_test(GA, s1, t1, e2);
+			if (intersection_test(GA, s1, t1, e2)) {
+                #pragma omp atomic
+                ++sum;
+            }
 		}	
 	}
 
-	for (EdgeElement* e2 : *edge_out) {
-		t1.x = GA.x(e2->target());
-		t1.y = GA.y(e2->target());
+	for (EdgeElement* e1 : *edge_out) {
+		t1.x = GA.x(e1->target());
+		t1.y = GA.y(e1->target());
+        #pragma omp parallel for
 		for (edge e2 : edges) {
-			sum += intersection_test(GA, s1, t1, e2);
+			if (intersection_test(GA, s1, t1, e2)) {
+                #pragma omp atomic
+                ++sum;
+            }
 		}	
 	}
 

@@ -2,7 +2,6 @@ cmake_minimum_required (VERSION 3.15.3)
 
 project(Graph-Drawing)
 
-#set(CMAKE_CXX_FLAGS "-O0 -Wall -Wextra -Werror -pedantic -g -DOGDF_DEBUG")
 set(CMAKE_CXX_FLAGS "-O3 -Wall -Wextra -Werror -pedantic")
 
 set(OGDF_CONFIG_SEARCH_PATH PATH "~/Files/Libs/ogdf")
@@ -17,6 +16,8 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(JSONCPP jsoncpp)
 link_libraries(${JSONCPP_LIBRARIES})
 
+find_package(OpenMP)
+
 add_executable(${PROJECT_NAME} "")
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${OGDF_INCLUDE_DIRS}
@@ -24,6 +25,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${OGDF_INCLUDE_DIRS}
 
 target_link_libraries(${PROJECT_NAME} OGDF
                                       stdc++fs
-                                      ${JSONCPP_LIBRARIES})
+                                      ${JSONCPP_LIBRARIES}
+                                      OpenMP::OpenMP_CXX)
 
 add_subdirectory(src)
