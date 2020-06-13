@@ -124,13 +124,54 @@ void base_layout(GraphAttributes& GA, Array<node>& nodes,
         GA.y(n) *= spacing;
 }
 
+void sugiyama_layout(GraphAttributes& GA, Array<node>& nodes, 
+                     uint32_t width, uint32_t height) {
+    // call basic Sugiyama algorithm
+    SugiyamaLayout SL;
+    SL.setRanking(new OptimalRanking);
+    SL.setCrossMin(new MedianHeuristic);
+
+    OptimalHierarchyLayout* ohl = new OptimalHierarchyLayout;
+    ohl->layerDistance(1.0);
+    ohl->nodeDistance(1.0);
+    ohl->weightBalancing(0.8);
+    SL.setLayout(ohl);
+
+    SL.call(GA);
+
+    // find maximum values
+    uint32_t max_x = 1;
+    uint32_t max_y = 1;
+    uint32_t x, y;
+
+    for (node n : nodes) {
+        x = GA.x(n); 
+        y = GA.y(n); 
+        if (x > max_x) 
+            max_x = x;
+        if (y > max_y) 
+            max_y = y;
+    }
+
+    // stretch/compress to box limit
+    double x_factor = (double) width / max_x;
+    double y_factor = (double) height / max_y;
+
+    for (node n : nodes) {
+       GA.x(n) = (uint32_t) GA.x(n) * x_factor;
+       GA.y(n) = (uint32_t) GA.y(n) * y_factor;
+    }
+}
+
 void reduce_crossings(GraphAttributes& GA, Array<node>& nodes, 
                       Array<edge>& edges, 
                       uint32_t width, 
                       uint32_t height) {
-    // initial drawing
-    base_layout(GA, nodes, width, height);
+//    // initial drawing
+//    base_layout(GA, nodes, width, height);
+
+    sugiyama_layout(GA, nodes, width, height);
 
     // move nodes to random location within certain boundaries
-    random_displacement(GA, nodes, edges, width, height, 1300000);
+    random_displacement(GA, nodes, edges, width, height, 0);
 }

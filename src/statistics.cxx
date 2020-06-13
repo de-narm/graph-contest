@@ -127,10 +127,11 @@ bool doIntersect(Point p1, Point q1, Point p2, Point q2)
 }
 // end of copied code 
 
-uint32_t intersection_test(GraphAttributes& GA, 
-						   Point s1,
-						   Point t1,
-                           edge& e2) {
+void intersection_test(GraphAttributes& GA, 
+                       uint32_t* sum,
+					   Point s1,
+					   Point t1,
+                       edge& e2) {
 	Point s2, t2;
 	
 	s2.x = GA.x(e2->source());
@@ -145,13 +146,13 @@ uint32_t intersection_test(GraphAttributes& GA,
         std::max(t1.y, s1.y) > std::min(s2.y, t2.y)) { 
         // not with same nodes connected?
         if (s1 == s2 || s1 == t2 || t1 == s2 || t1 == t2)
-            return 0;
+            return;
         // intersection?
-        if (doIntersect(s1, t1, s2, t2))
-            return 1;
+        if (doIntersect(s1, t1, s2, t2)) {
+            #pragma omp atomic
+            ++(*sum);
+        }
     }
-
-    return 0;
 }
 
 uint32_t crossings(ogdf::GraphAttributes& GA, 
@@ -171,29 +172,31 @@ uint32_t crossings(ogdf::GraphAttributes& GA,
 
     omp_set_num_threads(4);
 
-	for (EdgeElement* e1 : *edge_in) {
-		t1.x = GA.x(e1->source());
-		t1.y = GA.y(e1->source());
-        #pragma omp parallel for 
-		for (edge e2 : edges) {
-			if (intersection_test(GA, s1, t1, e2)) {
-                #pragma omp atomic
-                ++sum;
+    #pragma omp parallel
+    {
+        #pragma omp single
+        {
+            for (EdgeElement* e1 : *edge_in) {
+                t1.x = GA.x(e1->source());
+                t1.y = GA.y(e1->source());
+                #pragma omp task 
+                {
+                for (edge e2 : edges)
+                    intersection_test(GA, &sum, s1, t1, e2);
+                }
             }
-		}	
-	}
 
-	for (EdgeElement* e1 : *edge_out) {
-		t1.x = GA.x(e1->target());
-		t1.y = GA.y(e1->target());
-        #pragma omp parallel for
-		for (edge e2 : edges) {
-			if (intersection_test(GA, s1, t1, e2)) {
-                #pragma omp atomic
-                ++sum;
+            for (EdgeElement* e1 : *edge_out) {
+                t1.x = GA.x(e1->target());
+                t1.y = GA.y(e1->target());
+                #pragma omp task
+                {
+                for (edge e2 : edges)
+                    intersection_test(GA, &sum, s1, t1, e2);
+                }
             }
-		}	
-	}
+        }
+    }
 
 	return sum;
 }
