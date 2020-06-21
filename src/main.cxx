@@ -2,6 +2,7 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <omp.h>
 #include <json/json.h>
 #include <json/value.h>
 #include <experimental/filesystem>
@@ -111,6 +112,8 @@ void traverse_dir(std::string path) {
 }
 
 int main(int argc, char** argv) {
+    omp_set_num_threads(4);  
+    
     // handle input flags (-d "dir" -f "file")
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-f")) {

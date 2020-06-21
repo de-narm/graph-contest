@@ -7,27 +7,51 @@ void random_displacement(GraphAttributes& GA, Array<node>& nodes,
                          Array<edge>& edges,
                          uint32_t width, uint32_t height, uint32_t steps) {
     // vars used throughout for temp values to revert positions etc.
-    uint32_t x,y,id;
+    uint32_t x,y,id, random;
     // vars to compare positions
-    uint32_t old_overlaps, old_nodecrossings, old_crossings;
-    uint32_t size = nodes.size();
+    uint32_t old_overlaps, old_nodecrossings, old_crossings, new_crossings;
+//    uint32_t size = nodes.size();
 
     // limits for new position
     List<EdgeElement*> con_edges;
     int32_t lower_max, upper_min;
 
+    // base value for crossings; > 0 == each node pickable for displacement
+    uint32_t cross_weight = 10;
+    
+    // all initial edge crossing values
+    std::vector<uint32_t> cross_list;
+    uint32_t cross_sum = 1;
+    uint32_t cross_tmp = 0;
+    for (auto n : nodes) {
+        cross_tmp = (crossings(GA, edges, n) + cross_weight);
+        cross_list.push_back(cross_tmp); 
+        cross_sum += cross_tmp;
+    }
+
     // change a random node randomly, keep if graph is improved
     for (uint32_t i = 0; i < steps; ++i) {
-        id = rand() % size;
+        // get nodes with more crossings more often
+        random = rand() % cross_sum;
+        id = 0;
+        for (uint32_t c : cross_list) {
+            if(c >= random) {
+                break;
+            } else {
+               random -= c; 
+            }
+            ++id;
+        }
 
         // current min values to check for improvements later
         old_overlaps = node_overlaps(GA, nodes, nodes[id]);
-        old_nodecrossings = node_crossings(GA, edges, nodes[id]);
-        old_crossings = crossings(GA, edges, nodes[id]);
+        old_nodecrossings = all_edge_node_crossings(GA, nodes, edges,
+                                                    nodes[id]);
+        old_crossings = (crossings(GA, edges, nodes[id]) + cross_weight);
 
-        // not moving 0-nodes has proven better for smaller graphs
-        if (old_overlaps == 0 && old_nodecrossings == 0 && old_crossings == 0) 
-            continue;
+//        // not moving 0-nodes has proven better for smaller graphs
+//        if (old_overlaps == 0 && old_nodecrossings == 0 && old_crossings == 0) 
+//            continue;
 
         x = GA.x(nodes[id]);
         y = GA.y(nodes[id]);
@@ -43,24 +67,38 @@ void random_displacement(GraphAttributes& GA, Array<node>& nodes,
         for (edge e : con_edges)
             if (GA.y(e->target()) < upper_min)
                 upper_min = GA.y(e->target());
-        GA.x(nodes[id]) = rand() % (width + 1);
         ++lower_max; // inc because only inbetween numbers are wanted
+
+        // set new random values
+        GA.x(nodes[id]) = rand() % (width + 1);
         if (upper_min > lower_max) 
             GA.y(nodes[id]) = lower_max + (rand() % (upper_min - lower_max));
 
+        // update crossing list
+        new_crossings = (crossings(GA, edges, nodes[id]) + cross_weight); 
+        cross_tmp = cross_list[id];
+        cross_list[id] = new_crossings; 
+        cross_sum -= (cross_tmp - new_crossings);
+
         // check for improvements
         if (node_overlaps(GA, nodes, nodes[id]) <= old_overlaps) {
-            if (node_crossings(GA, edges, nodes[id]) <= old_nodecrossings) {
-                if (crossings(GA, edges, nodes[id]) <= old_crossings) {
+            //if (node_crossings(GA, edges, nodes[id]) <= old_nodecrossings) {
+            if (all_edge_node_crossings(GA, nodes, edges, nodes[id]) <=
+                old_nodecrossings) {
+                if (new_crossings <= old_crossings) 
                     continue;
-                }
                 // regardless of crossings, keep changes to improve correctness
                 if (old_nodecrossings > 0)
                     continue;
             }
-            if (old_overlaps > 0) 
+            if (old_overlaps > 0)
                 continue;
         }
+
+        // update crossing list; other node movements could have changed it
+        cross_tmp = cross_list[id];
+        cross_list[id] = old_crossings; 
+        cross_sum -= (cross_tmp - old_crossings);
 
         // revert changes
         GA.x(nodes[id]) = x;
@@ -158,8 +196,8 @@ void sugiyama_layout(GraphAttributes& GA, Array<node>& nodes,
     double y_factor = (double) height / max_y;
 
     for (node n : nodes) {
-       GA.x(n) = (uint32_t) GA.x(n) * x_factor;
-       GA.y(n) = (uint32_t) GA.y(n) * y_factor;
+       GA.x(n) = (int) (((int) GA.x(n)) * x_factor);
+       GA.y(n) = (int) (((int) GA.y(n)) * y_factor);
     }
 }
 
@@ -167,11 +205,10 @@ void reduce_crossings(GraphAttributes& GA, Array<node>& nodes,
                       Array<edge>& edges, 
                       uint32_t width, 
                       uint32_t height) {
-//    // initial drawing
-//    base_layout(GA, nodes, width, height);
-
+    // initial drawing
+    //base_layout(GA, nodes, width, height);
     sugiyama_layout(GA, nodes, width, height);
 
     // move nodes to random location within certain boundaries
-    random_displacement(GA, nodes, edges, width, height, 0);
+    random_displacement(GA, nodes, edges, width, height, 600000);
 }

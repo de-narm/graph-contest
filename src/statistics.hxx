@@ -39,6 +39,15 @@ uint32_t all_node_crossings(ogdf::GraphAttributes& GA,
                             ogdf::Array<ogdf::node>& nodes,
                             ogdf::Array<ogdf::edge>& edges);
 
+uint32_t edge_node_crossings(ogdf::GraphAttributes& GA, 
+                             ogdf::List<ogdf::edge>& edges, 
+                             ogdf::node& n);
+
+uint32_t all_edge_node_crossings(ogdf::GraphAttributes& GA, 
+                                 ogdf::Array<ogdf::node>& nodes,
+                                 ogdf::Array<ogdf::edge>& edges,
+                                 ogdf::node& n);
+
 bool onSegment(Point p, Point q, Point r);
 
 int32_t orientation(Point p, Point q, Point r); 

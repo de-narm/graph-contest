@@ -18,7 +18,7 @@ uint32_t node_overlaps(GraphAttributes& GA, Array<node>& nodes,
 }
 
 uint32_t all_node_overlaps(GraphAttributes& GA, 
-                       Array<node>& nodes) {
+                           Array<node>& nodes) {
     uint32_t sum = 0;
     for (node m : nodes) {
         sum += node_overlaps(GA, nodes, m);
@@ -30,35 +30,96 @@ uint32_t all_node_overlaps(GraphAttributes& GA,
 uint32_t node_crossings(GraphAttributes& GA, 
                         Array<edge>& edges, 
                         node& n) {
-    uint32_t crossings = 0;
     int32_t x,y;
+
     for (edge e : edges) {
-        // get vector of edge
-        y = GA.y(e->target()) - GA.y(e->source());
-        x = GA.x(e->target()) - GA.x(e->source());
-        
-        // does the node cross with the line of the edge?
-        if ((((GA.x(n) - GA.x(e->source())) / x) == 
-            ((GA.y(n) - GA.y(e->source())) / y)) ||
-            (((GA.x(n) - GA.x(e->source())) / x) &&
-            (y == 0) && (GA.y(n) == GA.y(e->source()))) || 
-            (((GA.y(n) - GA.y(e->source())) / y) &&
-            (x == 0) && (GA.x(n) == GA.x(e->source())))) {
-            // is the point within segment?
-            if ((GA.y(e->source()) < GA.y(n)) 
-                && (GA.y(e->target()) > GA.y(n))) 
-                ++crossings;}
+        if (GA.x(n) <= std::max(GA.x(e->source()), GA.x(e->target())) &&
+            GA.x(n) >= std::min(GA.x(e->source()), GA.x(e->target())) &&
+            GA.y(n) <= std::max(GA.y(e->source()), GA.y(e->target())) &&
+            GA.y(n) >= std::min(GA.y(e->source()), GA.y(e->target()))) { 
+            // get vector of edge
+            y = GA.y(e->target()) - GA.y(e->source());
+            x = GA.x(e->target()) - GA.x(e->source());
+            
+            // does the node cross with the line of the edge?
+            if ((((GA.x(n) - GA.x(e->source())) / x) == 
+                ((GA.y(n) - GA.y(e->source())) / y)) ||
+                (((GA.x(n) - GA.x(e->source())) / x) &&
+                (y == 0) && (GA.y(n) == GA.y(e->source()))) || 
+                (((GA.y(n) - GA.y(e->source())) / y) &&
+                (x == 0) && (GA.x(n) == GA.x(e->source())))) {
+                // is the point within segment?
+                if ((GA.y(e->source()) < GA.y(n)) 
+                    && (GA.y(e->target()) > GA.y(n))) 
+                    return 1;}
+        }
     }
 
-    return crossings;
+    return 0;
 }
 
 uint32_t all_node_crossings(GraphAttributes& GA, 
-                        Array<node>& nodes,
-                        Array<edge>& edges) {
+                            Array<node>& nodes,
+                            Array<edge>& edges) {
     uint32_t sum = 0;
+
+    #pragma omp parallel for 
     for (node m : nodes) {
-        sum += node_crossings(GA, edges, m);
+        if(node_crossings(GA, edges, m))
+            #pragma omp atomic
+            ++sum;
+    }
+
+    return sum;
+}
+
+uint32_t edge_node_crossings(GraphAttributes& GA, 
+                             List<edge>& edges, 
+                             node& n) {
+    int32_t x,y;
+
+    for (edge e : edges) {
+        if (GA.x(n) <= std::max(GA.x(e->source()), GA.x(e->target())) &&
+            GA.x(n) >= std::min(GA.x(e->source()), GA.x(e->target())) &&
+            GA.y(n) <= std::max(GA.y(e->source()), GA.y(e->target())) &&
+            GA.y(n) >= std::min(GA.y(e->source()), GA.y(e->target()))) { 
+            // get vector of edge
+            y = GA.y(e->target()) - GA.y(e->source());
+            x = GA.x(e->target()) - GA.x(e->source());
+            
+            // does the node cross with the line of the edge?
+            if ((((GA.x(n) - GA.x(e->source())) / x) == 
+                ((GA.y(n) - GA.y(e->source())) / y)) ||
+                (((GA.x(n) - GA.x(e->source())) / x) &&
+                (y == 0) && (GA.y(n) == GA.y(e->source()))) || 
+                (((GA.y(n) - GA.y(e->source())) / y) &&
+                (x == 0) && (GA.x(n) == GA.x(e->source())))) {
+                // is the point within segment?
+                if ((GA.y(e->source()) < GA.y(n)) 
+                    && (GA.y(e->target()) > GA.y(n))) 
+                    return 1;}
+        }
+    }
+
+    return 0;
+}
+
+uint32_t all_edge_node_crossings(ogdf::GraphAttributes& GA, 
+                                 ogdf::Array<ogdf::node>& nodes,
+                                 ogdf::Array<ogdf::edge>& edges,
+                                 ogdf::node& n) {
+    uint32_t sum = 0;
+
+    List<EdgeElement*> con_edges;
+    n->adjEdges(con_edges);
+    
+    sum += node_crossings(GA, edges, n);
+
+    #pragma omp parallel for 
+    for (node m : nodes) {
+        if(edge_node_crossings(GA, con_edges, m))
+            #pragma omp atomic
+            ++sum;
     }
 
     return sum;
@@ -164,38 +225,26 @@ uint32_t crossings(ogdf::GraphAttributes& GA,
 	s1.x = GA.x(n1);
 	s1.y = GA.y(n1);
 
-    List<EdgeElement*>* edge_in = new List<EdgeElement*>();
-    n1->adjEdges(*edge_in);
+    List<EdgeElement*> edge_in;
+    n1->adjEdges(edge_in);
 
-    List<EdgeElement*>* edge_out = new List<EdgeElement*>();
-    n1->adjEdges(*edge_out);
+    List<EdgeElement*> edge_out;
+    n1->adjEdges(edge_out);
 
-    omp_set_num_threads(4);
+    for (EdgeElement* e1 : edge_in) {
+        t1.x = GA.x(e1->source());
+        t1.y = GA.y(e1->source());
+        #pragma omp parallel for 
+        for (edge e2 : edges)
+            intersection_test(GA, &sum, s1, t1, e2);
+    }
 
-    #pragma omp parallel
-    {
-        #pragma omp single
-        {
-            for (EdgeElement* e1 : *edge_in) {
-                t1.x = GA.x(e1->source());
-                t1.y = GA.y(e1->source());
-                #pragma omp task 
-                {
-                for (edge e2 : edges)
-                    intersection_test(GA, &sum, s1, t1, e2);
-                }
-            }
-
-            for (EdgeElement* e1 : *edge_out) {
-                t1.x = GA.x(e1->target());
-                t1.y = GA.y(e1->target());
-                #pragma omp task
-                {
-                for (edge e2 : edges)
-                    intersection_test(GA, &sum, s1, t1, e2);
-                }
-            }
-        }
+    for (EdgeElement* e1 : edge_out) {
+        t1.x = GA.x(e1->target());
+        t1.y = GA.y(e1->target());
+        #pragma omp parallel for
+        for (edge e2 : edges)
+            intersection_test(GA, &sum, s1, t1, e2);
     }
 
 	return sum;
