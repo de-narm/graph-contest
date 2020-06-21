@@ -17,7 +17,7 @@ void random_displacement(GraphAttributes& GA, Array<node>& nodes,
     int32_t lower_max, upper_min;
 
     // base value for crossings; > 0 == each node pickable for displacement
-    uint32_t cross_weight = 10;
+    uint32_t cross_weight = (steps/10);
     
     // all initial edge crossing values
     std::vector<uint32_t> cross_list;
@@ -49,9 +49,18 @@ void random_displacement(GraphAttributes& GA, Array<node>& nodes,
                                                     nodes[id]);
         old_crossings = (crossings(GA, edges, nodes[id]) + cross_weight);
 
-//        // not moving 0-nodes has proven better for smaller graphs
-//        if (old_overlaps == 0 && old_nodecrossings == 0 && old_crossings == 0) 
-//            continue;
+        // update crossing list; other node movements could have changed it
+        cross_tmp = cross_list[id];
+        cross_list[id] = old_crossings; 
+        cross_sum -= (cross_tmp - old_crossings);
+
+        // not moving 0-nodes has proven better for smaller graphs
+        if (old_overlaps == 0 && old_nodecrossings == 0 && 
+            old_crossings <= cross_weight) {
+            if (cross_weight > 0)
+                --cross_weight;
+            continue;
+        }
 
         x = GA.x(nodes[id]);
         y = GA.y(nodes[id]);
@@ -210,5 +219,5 @@ void reduce_crossings(GraphAttributes& GA, Array<node>& nodes,
     sugiyama_layout(GA, nodes, width, height);
 
     // move nodes to random location within certain boundaries
-    random_displacement(GA, nodes, edges, width, height, 600000);
+    random_displacement(GA, nodes, edges, width, height, 100000);
 }
