@@ -10,14 +10,14 @@ void random_displacement(GraphAttributes& GA, Array<node>& nodes,
     uint32_t x,y,id, random;
     // vars to compare positions
     uint32_t old_overlaps, old_nodecrossings, old_crossings, new_crossings;
-//    uint32_t size = nodes.size();
+    uint32_t size = nodes.size();
 
     // limits for new position
     List<EdgeElement*> con_edges;
     int32_t lower_max, upper_min;
 
     // base value for crossings; > 0 == each node pickable for displacement
-    uint32_t cross_weight = (steps/10);
+    uint32_t cross_weight = 1;
     
     // all initial edge crossing values
     std::vector<uint32_t> cross_list;
@@ -31,16 +31,24 @@ void random_displacement(GraphAttributes& GA, Array<node>& nodes,
 
     // change a random node randomly, keep if graph is improved
     for (uint32_t i = 0; i < steps; ++i) {
-        // get nodes with more crossings more often
-        random = rand() % cross_sum;
-        id = 0;
-        for (uint32_t c : cross_list) {
-            if(c >= random) {
-                break;
-            } else {
-               random -= c; 
+        std::cout << "####" ;
+        std::cout << cross_sum ;
+        // get nodes with more crossings more often the further you go
+        if ((rand() % steps) < i) {
+            random = rand() % cross_sum;
+
+            // get the matching node
+            id = 0;
+            for (uint32_t c : cross_list) {
+                if(c >= random) {
+                    break;
+                } else {
+                   random -= c; 
+                }
+                ++id;
             }
-            ++id;
+        } else {
+            id = rand() % size;
         }
 
         // current min values to check for improvements later
@@ -53,12 +61,14 @@ void random_displacement(GraphAttributes& GA, Array<node>& nodes,
         cross_tmp = cross_list[id];
         cross_list[id] = old_crossings; 
         cross_sum -= (cross_tmp - old_crossings);
+        
+        
+        std::cout << "tmp: " << cross_tmp ;
+        std::cout << "old: " << old_crossings ;
 
         // not moving 0-nodes has proven better for smaller graphs
         if (old_overlaps == 0 && old_nodecrossings == 0 && 
             old_crossings <= cross_weight) {
-            if (cross_weight > 0)
-                --cross_weight;
             continue;
         }
 
@@ -89,6 +99,9 @@ void random_displacement(GraphAttributes& GA, Array<node>& nodes,
         cross_list[id] = new_crossings; 
         cross_sum -= (cross_tmp - new_crossings);
 
+        std::cout << "tmp: " << cross_tmp ;
+        std::cout << "new: " << new_crossings ;
+
         // check for improvements
         if (node_overlaps(GA, nodes, nodes[id]) <= old_overlaps) {
             //if (node_crossings(GA, edges, nodes[id]) <= old_nodecrossings) {
@@ -108,6 +121,9 @@ void random_displacement(GraphAttributes& GA, Array<node>& nodes,
         cross_tmp = cross_list[id];
         cross_list[id] = old_crossings; 
         cross_sum -= (cross_tmp - old_crossings);
+
+        std::cout << "tmp: " << cross_tmp ;
+        std::cout << "old: " << old_crossings ;
 
         // revert changes
         GA.x(nodes[id]) = x;
