@@ -12,6 +12,9 @@
 #include <ogdf/layered/OptimalRanking.h>
 #include <ogdf/layered/SugiyamaLayout.h>
 
+#include <ogdf/energybased/spring_embedder/SpringEmbedderBase.h>
+#include <ogdf/energybased/SpringEmbedderGridVariant.h>
+
 #include "statistics.hxx"
 
 void random_displacement(ogdf::GraphAttributes& GA, 
