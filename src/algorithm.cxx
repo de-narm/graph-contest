@@ -184,7 +184,7 @@ void reduce_crossings(GraphAttributes& GA, Array<node>& nodes,
                       uint32_t height) {
     // initial drawing
     //base_layout(GA, nodes, width, height);
-    spring_layout(GA, nodes, width, height);
+    sugiyama_layout(GA, nodes, width, height);
 
     // move nodes to random location within certain boundaries
     random_displacement(GA, nodes, edges, width, height, 0);

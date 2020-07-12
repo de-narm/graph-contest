@@ -1,8 +1,9 @@
 %TODO FIND SOURCE FOR NP HARDNESS
 
-\documentclass[]{article}
+\documentclass[]{llncs}
 
 \usepackage{tikz}
+\usepackage{enumitem}
 \usepackage{verbatim}
 \usepackage{biblatex}
 \usepackage{filecontents}
@@ -45,6 +46,28 @@
   year = 2018
 }
 
+@inproceedings{conf/gd/DemelDMRW18,
+  added-at = {2019-12-17T16:50:25.000+0100},
+  author = {Demel, Almut and Dürrschnabel, Dominik and Mchedlidze, Tamara and Radermacher, Marcel and Wulf, Lasse},
+  biburl = {https://www.bibsonomy.org/bibtex/24d53ae536166435e13c78aeb2025d574/duerrschnabel},
+  booktitle = {Graph Drawing},
+  crossref = {conf/gd/2018},
+  editor = {Biedl, Therese C. and Kerren, Andreas},
+  ee = {https://doi.org/10.1007/978-3-030-04414-5_20},
+  interhash = {44c9d5616b9daf6501104053f403cfdc},
+  intrahash = {4d53ae536166435e13c78aeb2025d574},
+  isbn = {978-3-030-04414-5},
+  keywords = {crossing_angle_maximization greedy_heuristik myown},
+  pages = {286-299},
+  publisher = {Springer},
+  series = {Lecture Notes in Computer Science},
+  timestamp = {2019-12-17T16:50:25.000+0100},
+  title = {A Greedy Heuristic for Crossing-Angle Maximization.},
+  url = {http://dblp.uni-trier.de/db/conf/gd/gd2018.html#DemelDMRW18},
+  volume = 11282,
+  year = 2018
+}
+
 \end{filecontents}
 
 \addbibresource{bib.bib}
@@ -70,7 +93,7 @@ The main criteria this time around are crossing which ought to be minimal in the
 
 After all graphs are collected, for each of the original graphs a best drawing is determined with all the other graphs receiving a weighted score based on the difference in crossings. The highest overall score wins the contest. Each team has to bring its own hardware to run their respective algorithm, meaning there is no limitation in terms of tools used and the given time to solve the task can be counterbalanced by more powerful hardware.
 
-During the last couple of years most if not all of the top scoring contestants based their algorithm at least to some part on randomness which will be the basis of this work. The goal of is to evaluate different base drawings and to find a balance between lightweight calculations for random steps and a more directed approach to randomness.
+During the last couple of years most if not all of the top scoring contestants based their algorithm at least to some part on randomness which will be the basis of this work. The goal of is to find a balance between lightweight calculations for random steps and a more directed approach to randomness.
 
 	\section{Foundation}
 	A $graph\;G$ is defined as an ordered pair $(V, E)$ of $vertices\;V$ and $edges\;E$. Edges are unordered pairs of two vertices $\{x,y\}$, said to $join$  them, and therefore $E$ is a subset of $V^{(2)}$. In the special case where edges are ordered pairs $(x,y)$ with $x$ as $source$ and $y$ as $target$ the graph $D$ is called $directed$ graph or $digraph$. We call the number of vertices the $order$ of $G$ and the number of edges the $size$ of $G$. $V(G)$ and $E(G)$ are the sets of vertices and edges of $G$ respectively, $x \in V(G)$ with vertex $x$ can be written as $x \in G$ while $\{x, y\} \in E(G)$ with unordered edge $\{x,y\}$ is written as $\{x,y\} \in G$. 
@@ -80,13 +103,65 @@ For a more comprehensive explanation I refer to the book $Modern$ $Graph$ $Theor
 	\section{Prior Work}
 	\paragraph{A Heuristic Approach towards Drawings of
 Graphs with High Crossing Resolution~\cite{journals/corr/abs-1808-10519}}
-	While not aiming at the same goal, this algorithm served as basis for the last years winner. The aim was to create a drawing with largest minimum angle, called the resolution of $G$,  possible. To achieve this the algorithm build and maintained two sets: all nodes and only such nodes that are deemed critical for the current resolution of $G$. Critical are all nodes connected with edges involved in minimal angles. In each iteration either a node from the set of all critical nodes is chosen uniformly or inverse proportionally to its proximity to a critical nodes from the set of all nodes. To determine the new position of a node rays are used which are cast out uniformly distributed in all directions with the best result becoming the new position. Combined with a energy-based base drawing and some tweaks to avoid local minima, the algorithm proved itself also won its respective year.
+	While not aiming at the same goal, this algorithm served as basis for the last years winner. The aim was to create a drawing with largest minimum angle, called the resolution of $G$,  possible. To achieve this the algorithm build and maintained two sets: all nodes and only such nodes that are deemed critical for the current resolution of $G$. Critical are all nodes connected with edges involved in minimal angles. In each iteration either a node from the set of all critical nodes is chosen uniformly or inverse proportionally to its proximity to a critical nodes from the set of all nodes. To determine the new position of a node rays are used which are cast out uniformly distributed in all directions with the best result becoming the new position. Combined with a energy-based base drawing and some tweaks to avoid local minima, the algorithm proved itself and also won its respective year.
+
+    \paragraph{A Greedy Heuristic for Crossing-Angle Maximization~\cite{conf/gd/DemelDMRW18}}
+	Another winning contribution to a different year with the same aim as before, an algorithm to create a drawing with the largest possible minimum angle. Starting from a force directed base drawing the algorithm greedily selects the minimal crossing in the current drawing. A random vertex is chosen and displaced within a square around the original position to achieve the maximal local crossing angle. The size of the square is decreased in each iteration.
 
     \section{Sugiyama Framework}
 
     \section{Crossing Minimization}
 
-    \section{Results}
+Following the base drawing, the graph drawing algorithm is heavily based on random displacement of nodes. In order to achieve the best results there are three things to balance against each other: Being as efficient as possible to run as many displacements as possible, directing the algorithm enough to minimize steps without any improvement and allowing enough randomness to minimize the risk of local minima. What follows now is a step by step explanation of the final algorithm, afterwards I will go through possible changes and their impact on the overall results.
+
+\medskip
+\begin{enumerate}[start=0]
+    \item The displacement process is started with a fix number iterations $I$. Each iteration only tests a single new position for a single node.
+    \item A node is chosen completely random and the following values are determined:
+    \begin{enumerate}
+        \item The initial number of node-overlaps is calculated by comparing the node position with every other node.
+        \item To arrive at the number of node-crossings the node position is tested against every edge. Iff the node is within the bounding box of an edge, it is tested against a crossing.
+        \item Finally edge-crossings are calculated by testing each edge connected with the node against every other edge, again only by testing if their bounding boxes intersect and testing for an crossing afterwards.
+    \end{enumerate}
+    \item To assign a new position $(x,y)$ to the node, its $x$ value is randomized on the entire width of the grid. The $y$ value is only randomized between the highest lower neighbour and the lowest upper neighbour. This assures that each edge will remain upwards facing.
+    \item Afterwards each metric is calculated again.
+    \begin{enumerate}
+        \item Iff both the number of node-crossings and node-overlaps remain the same or improve compared to before, the new position is kept if the same applies to the number of edge-crossings.
+        \item Iff both the number of node-crossings and node-overlaps remain the same or improve compared to before, the new position is kept with an increase in edge-crossings up to $n = 4$ with a decreasing chance between $100\%$ and $0\%$ in the first $I / (n + 1)$ steps. This means an increase of $1$ can be kept in the first half, a increase of $2$ in the first third and so on. 
+        \item Regardless of the edge-crossings the new position is kept iff the number of node-overlaps is reduced or the number of node-crossings decreases while the node-overlaps stay the same. This priority assures that the resulting drawing does not violate any restrictions.
+        \item Otherwise the displacement is reversed.
+    \end{enumerate}
+\end{enumerate}
+
+\medskip
+The algorithm was implemented in C++ using $Open$ $Graph$ $Drawing$ $Framework$\footnote{https://ogdf.uos.de/}. In order to increase the performance of the edge-crossings algorithm all edges were run in parallel using $OpenMP$\footnote{https://www.openmp.org/}. Across all tested configurations OpenMP only cut the runtime in half as all displacements still run in sequence and the average node has not enough edges to further improve runtime.
+
+\begin{figure}
+\centering
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|c|}
+	\hline 
+	& \#1 & \#2 & \#3 & \#4 & \#5 & \#6 & \#7 & \#8 & \#9 & \#10 & \#11 & \#12 \\
+	\hline 
+    Sugiyama & 14 & 46* & 17 & 15* & 37* & 412* & 526 & 911 & 134 & 3,327* & 3,039* & 339,951* \\  
+	\hline
+	100k & 0 & 4 & 4 & 4 & 32 & 116 & 4 & 380 & 39 & 2,084 & 2,821 & 233,459 \\
+	\hline
+	1.5m & 0 & 4 & 5 & 4 & 32 & 94 & 5 & 330 & 35 & 1,635 & 2,178 & 161,423 \\
+	\hline
+	Tübigen-Bus & 0 & 4 & 5 & 4 & 32 & 81 & 0 & 307 & 38 & 1,568 & 1,721 & 147,628 \\
+	\hline 
+\end{tabular}
+\caption{Performance of base layout and algorithm compared to last years winner}
+\label{best-res}
+\end{figure}
+
+The results from the base drawing, the algorithm with both $100,000$ and $1.5$ million iterations and the winning entry $Tübingen-Bus$ from last years contest\footnote{http://mozart.diei.unipg.it/gdcontest/contest2019/results.html} can be seen in Table~\ref{best-res}. Results marked with an asterisk do not fulfil all requirements placed upon the drawing. Both runs of the presented algorithm finished within the one hour mark, $100,000$ is included nonetheless as most changes presented later on were only tested with this smaller number of iterations. On most instances last years winner is either equivalent or better performing, especially on larger graphs. There are only two instances were this is not the case, one within each of the runs. Since the algorithm is mostly based upon randomness the run with less iterations is actually better than the longer run twice for the smaller graphs.
+
+	\section{Iteration Parallelization}
+
+	\section{Possible changes}
+
+    \section{Conclusion}
 
     \printbibliography
 \end{document}
