@@ -123,6 +123,7 @@ Following the base drawing, the graph drawing algorithm is heavily based on rand
         \item To arrive at the number of node-crossings the node position is tested against every edge. Iff the node is within the bounding box of an edge, it is tested against a crossing.
         \item Finally edge-crossings are calculated by testing each edge connected with the node against every other edge, again only by testing if their bounding boxes intersect and testing for an crossing afterwards.
     \end{enumerate}
+	\item Iff all metrics equal $0$ all other steps are skipped.
     \item To assign a new position $(x,y)$ to the node, its $x$ value is randomized on the entire width of the grid. The $y$ value is only randomized between the highest lower neighbour and the lowest upper neighbour. This assures that each edge will remain upwards facing.
     \item Afterwards each metric is calculated again.
     \begin{enumerate}
@@ -144,9 +145,9 @@ The algorithm was implemented in C++ using $Open$ $Graph$ $Drawing$ $Framework$\
 	\hline 
     Sugiyama & 14 & 46* & 17 & 15* & 37* & 412* & 526 & 911 & 134 & 3,327* & 3,039* & 339,951* \\  
 	\hline
-	100k & 0 & 4 & 4 & 4 & 32 & 116 & 4 & 380 & 39 & 2,084 & 2,821 & 233,459 \\
+	100k & 0 & 4 & 6 & 7 & 32 & 103 & 13 & 328 & 49 & 1,885 & 1,736 & 157,391 \\
 	\hline
-	1.5m & 0 & 4 & 5 & 4 & 32 & 94 & 5 & 330 & 35 & 1,635 & 2,178 & 161,423 \\
+	1m & 0 & 4 & 5 & 4 & 32 & 76 & 8 & 310 & 45 & 1,475 & 1,721 & 139,542 \\
 	\hline
 	Tübigen-Bus & 0 & 4 & 5 & 4 & 32 & 81 & 0 & 307 & 38 & 1,568 & 1,721 & 147,628 \\
 	\hline 
@@ -155,11 +156,52 @@ The algorithm was implemented in C++ using $Open$ $Graph$ $Drawing$ $Framework$\
 \label{best-res}
 \end{figure}
 
-The results from the base drawing, the algorithm with both $100,000$ and $1.5$ million iterations and the winning entry $Tübingen-Bus$ from last years contest\footnote{http://mozart.diei.unipg.it/gdcontest/contest2019/results.html} can be seen in Table~\ref{best-res}. Results marked with an asterisk do not fulfil all requirements placed upon the drawing. Both runs of the presented algorithm finished within the one hour mark, $100,000$ is included nonetheless as most changes presented later on were only tested with this smaller number of iterations. On most instances last years winner is either equivalent or better performing, especially on larger graphs. There are only two instances were this is not the case, one within each of the runs. Since the algorithm is mostly based upon randomness the run with less iterations is actually better than the longer run twice for the smaller graphs.
+The results from the base drawing, the algorithm with both $100,000$ and $1.5$ million iterations and the winning entry $Tübingen-Bus$ from last years contest\footnote{http://mozart.diei.unipg.it/gdcontest/contest2019/results.html} can be seen in Table~\ref{best-res}. Results marked with an asterisk do not fulfil all requirements placed upon the drawing. Both runs of the presented algorithm finished within the one hour mark on a $Lenovo\;Thinkpad\;T460$, $100,000$ is included nonetheless as most changes presented later on were only tested with this smaller number of iterations. On most instances last years winner is either equivalent or better performing, especially on larger graphs. There are only two instances were this is not the case, one within each of the runs. Since the algorithm is mostly based upon randomness the run with less iterations is actually better than the longer run twice for the smaller graphs.
 
-	\section{Iteration Parallelization}
+	\section{Different approaches}
+	This section will go through different approaches not included in the final algorithm to further reduce the number of crossings and some of their results.
 
-	\section{Possible changes}
+	The first thing considered was to change the way the algorithm is parallelized in order to improve performance as the algorithm could be described as randomized brute-forcing within certain boundaries. 
+	\begin{itemize}
+		\item The algorithm could simply work on all input graphs in parallel. However this cannot yield a better performance than being roughly twice as fast since only two graphs of the dataset occupy most of the runtime. However beyond the scope of the contest this would be the best solution for equally large graphs.
+		\item Another approach is to run the displacement steps in parallel. In theory this could scale the same way running the graphs in parallel would but without the requirement of equally sized graphs. The downside would be the possibility of introducing erroneous steps. Surprisingly only the upward-facing attribute of the edges posed a problem when moving multiple nodes at once. Fixing this afterwards would both ruin the speed-up and introduce new edge-crossings.
+	\end{itemize}
+	
+\begin{figure}
+\centering
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|c|}
+	\hline 
+	& \#1 & \#2 & \#3 & \#4 & \#5 & \#6 & \#7 & \#8 & \#9 & \#10 & \#11 & \#12 \\
+	\hline 
+	CrossWeight & 2 & 5 & 5 & 8 & 32 & 120 & 23 & 362 & 46 & 2,153 & 2,429 & 231,582 \\
+	\hline
+	1w & 0 & 4 & 5 & 6 & 32 & 133 & 21 & 372 & 44 & 2,144 & 2,514 & 229,974 \\
+	\hline
+	10w & 0 & 4 & 5 & 4 & 32 & 134 & 7 & 392 & 39 & 2,136 & 2,540 & 232,182 \\
+	\hline
+	100w & 0 & 4 & 5 & 6 & 32 & 126 & 14 & 393 & 37 & 2,142 & 2,622 & 228,550 \\
+	\hline
+	10w mix & 0 & 4 & 6 & 6 & 32 & 122 & 24 & 419 & 39 & 2,124 & 2,625 & 230,613 \\
+	\hline
+	%100k 0 11 6 6 32 130 21 576 82 2826 1728 212714
+	%1m 0 7 4 3 32 83 0 327 44 1682 1721 148462
+	%1.5m 0 7 5 5 32 92 0 321 36 1668 1721 143898
+\end{tabular}
+\caption{Performance of different node selection methods}
+\label{select-res}
+\end{figure}
+	Another major part of optimization seemed to be the selection of nodes, which happens completely at random. Table~\ref{select-res} shows the result from different selection methods, each tested with $100,000$ displacement steps on top of the Sugiyama base drawing. In order of the table the following methods were tested:
+	\begin{enumerate}
+		\item The basis to the algorithms used was to initially calculate all crossings and select the next node weighted by their crossing number. A fully greedy algorithm would be to prone to local minima. $CrossWeight$ simply used the number of crossings as-is and therefore would not select nodes without any crossings. It is included as a baseline but was never expected to outperform the purely random approach. Its major flaw is that recalculating edge-crossings for every node in each step would not be feasible without massively increasing the runtime, so only the current node was updated. This commonly lead to local minima as most nodes would not be selectable despite being involved in crossings introduced by moving other nodes but never being updated themselves.
+		\item $1w$ and all other entries with this naming scheme introduced a base chance for each node to be selected on top of their crossing number. Already with a base weight of $1$ the results are much closer to the purely random approach. As can be seen increasing the weight further improves the results slightly. The problem is how well it improves. A weight of $100$ for most graphs is well beyond the number of crossings a single node could be involved with. Yet despite being almost random, the smaller graphs still perform worse than before. Increasing the weight further would just imitate the random selection but with a large chunk of initial runtime to get the edge-crossings of each node. The results could be improved by updating all nodes in each step, but this would almost multiply the runtime of each step by the number of nodes.
+		\item Looking closely the weighted selected outperformed always outperformed random selection on the final and largest graph, but was underperforming in graphs with only a few crossings left. This data called for a mixed approach. The best result was achieved with a base weight of $10$ and a linearly decreasing chance to use the weighted selected from $100\%$ in the first step down to $0\%$ in the last step. However none of the results warranted the extra runtime for a weighted selection.
+	\end{enumerate}
+	Other tested weighted selection methods included decreasing weights over time - both prioritising nodes with more crossings and nodes not selected for the most steps, periodically updating all edge-crossings every x steps as well as both a changing and static chance to for a purely random and greedy step. Compared to the more in-depth explained ones above they performed worse in either runtime or resulting edge-crossings.
+
+	As no better selection algorithm could be found the next thing to search for was a better way to select the new node position in each step. Once again several different methods were tested with $100,000$ steps on top of the Sugiyama base drawing.
+	\begin{itemize}
+		\item What first comes to mind would be limiting the x dimension just like the y dimension is limited. By reducing the maximum distance a node could be moved at once the chance for attempts
+	\end{itemize}
 
     \section{Conclusion}
 

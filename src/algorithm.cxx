@@ -7,7 +7,12 @@ void random_displacement(GraphAttributes& GA, Array<node>& nodes,
                          Array<edge>& edges,
                          uint32_t width, uint32_t height, uint32_t steps) {
     // vars used throughout for temp values to revert positions etc.
-    uint32_t x,y,id;
+    uint32_t x,y,id,stepwidth,stepheight;
+    int32_t rand_x, rand_y;
+
+    stepwidth = std::max(10, (int)((width + 1) / 10));
+    stepheight = std::max(10, (int)((height + 1) / 10));
+
     // vars to compare positions
     uint32_t old_overlaps, old_nodecrossings, old_crossings, new_crossings;
     uint32_t size = nodes.size();
@@ -46,12 +51,29 @@ void random_displacement(GraphAttributes& GA, Array<node>& nodes,
         for (edge e : con_edges)
             if (GA.y(e->target()) < upper_min)
                 upper_min = GA.y(e->target());
-        ++lower_max; // inc because only inbetween numbers are wanted
 
         // set new random values
-        GA.x(nodes[id]) = rand() % (width + 1);
-        if (upper_min > lower_max) 
-            GA.y(nodes[id]) = lower_max + (rand() % (upper_min - lower_max));
+        rand_x = (int32_t) GA.x(nodes[id]) + 
+                 (pow((-1),(rand()%2)) * (rand() % stepwidth));
+        if (rand_x < 0) {
+            GA.x(nodes[id]) = 0;
+        } else if ((uint32_t) rand_x > width) {
+            GA.x(nodes[id]) = width;
+        } else {
+            GA.x(nodes[id]) = rand_x;
+        }
+
+        if (upper_min > lower_max) {
+            rand_y = (int32_t) GA.y(nodes[id]) +
+                     (pow((-1),(rand()%2)) * (rand() % stepheight));
+            if (rand_y >= upper_min) {
+                GA.y(nodes[id]) = (upper_min - 1);
+            } else if (rand_y <= lower_max) {
+                GA.y(nodes[id]) = (lower_max + 1);
+            } else {
+                GA.y(nodes[id]) = rand_y;
+            }
+        }
 
         // check for improvements
         if (node_overlaps(GA, nodes, nodes[id]) <= old_overlaps) {
@@ -187,5 +209,5 @@ void reduce_crossings(GraphAttributes& GA, Array<node>& nodes,
     sugiyama_layout(GA, nodes, width, height);
 
     // move nodes to random location within certain boundaries
-    random_displacement(GA, nodes, edges, width, height, 0);
+    random_displacement(GA, nodes, edges, width, height, 1000000);
 }
