@@ -9,7 +9,7 @@ void random_displacement(GraphAttributes& GA, Array<node>& nodes,
     // vars used throughout for temp values to revert positions etc.
     uint32_t x,y,id,stepwidth,stepheight;
     int32_t rand_x, rand_y;
-
+	
     stepwidth = std::max(10, (int)((width + 1) / 10));
     stepheight = std::max(10, (int)((height + 1) / 10));
 
@@ -209,5 +209,5 @@ void reduce_crossings(GraphAttributes& GA, Array<node>& nodes,
     sugiyama_layout(GA, nodes, width, height);
 
     // move nodes to random location within certain boundaries
-    random_displacement(GA, nodes, edges, width, height, 1000000);
+    random_displacement(GA, nodes, edges, width, height, 2000000);
 }

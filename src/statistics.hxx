@@ -54,8 +54,7 @@ int32_t orientation(Point p, Point q, Point r);
 
 bool doIntersect(Point p1, Point q1, Point p2, Point q2);
 
-void intersection_test(ogdf::GraphAttributes& GA, 
-                       uint32_t* sum,
+int32_t intersection_test(ogdf::GraphAttributes& GA, 
                        Point s1,
                        Point t1,
                        ogdf::edge& e2);

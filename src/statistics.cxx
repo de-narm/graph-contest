@@ -188,8 +188,7 @@ bool doIntersect(Point p1, Point q1, Point p2, Point q2)
 }
 // end of copied code 
 
-void intersection_test(GraphAttributes& GA, 
-                       uint32_t* sum,
+int32_t intersection_test(GraphAttributes& GA, 
 					   Point s1,
 					   Point t1,
                        edge& e2) {
@@ -207,13 +206,13 @@ void intersection_test(GraphAttributes& GA,
         std::max(t1.y, s1.y) > std::min(s2.y, t2.y)) { 
         // not with same nodes connected?
         if (s1 == s2 || s1 == t2 || t1 == s2 || t1 == t2)
-            return;
+            return 0;
         // intersection?
-        if (doIntersect(s1, t1, s2, t2)) {
-            #pragma omp atomic
-            ++(*sum);
-        }
+        if (doIntersect(s1, t1, s2, t2))
+            return 1;
     }
+
+    return 0;
 }
 
 uint32_t crossings(ogdf::GraphAttributes& GA, 
@@ -222,29 +221,24 @@ uint32_t crossings(ogdf::GraphAttributes& GA,
 	uint32_t sum = 0;
 	Point s1, t1;
 
-	s1.x = GA.x(n1);
-	s1.y = GA.y(n1);
+    List<EdgeElement*> adj_edges;
+    n1->adjEdges(adj_edges);
 
-    List<EdgeElement*> edge_in;
-    n1->adjEdges(edge_in);
-
-    List<EdgeElement*> edge_out;
-    n1->adjEdges(edge_out);
-
-    for (EdgeElement* e1 : edge_in) {
-        t1.x = GA.x(e1->source());
-        t1.y = GA.y(e1->source());
-        #pragma omp parallel for 
-        for (edge e2 : edges)
-            intersection_test(GA, &sum, s1, t1, e2);
+    Array<EdgeElement*> adj_edges_arr(adj_edges.size());
+    int32_t pos = 0;
+    for (EdgeElement* e1 : adj_edges) {
+        adj_edges_arr[pos] = e1;
+        ++pos;
     }
 
-    for (EdgeElement* e1 : edge_out) {
+    #pragma omp parallel for private(s1,t1) reduction(+: sum)
+    for (EdgeElement* e1 : adj_edges_arr) {
+        s1.x = GA.x(e1->source());
+        s1.y = GA.y(e1->source());
         t1.x = GA.x(e1->target());
         t1.y = GA.y(e1->target());
-        #pragma omp parallel for
         for (edge e2 : edges)
-            intersection_test(GA, &sum, s1, t1, e2);
+            sum += intersection_test(GA, s1, t1, e2);
     }
 
 	return sum;

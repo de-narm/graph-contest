@@ -34,8 +34,8 @@ void handle_graph(std::string path) {
 	GraphAttributes::edgeStyle |
 	GraphAttributes::nodeId);
 
-    uint32_t width = json["width"].asUInt();
-    uint32_t height = json["height"].asUInt();
+//    uint32_t width = json["width"].asUInt();
+//    uint32_t height = json["height"].asUInt();
 
     // fill graph with json data
     for (Json::Value j : json["nodes"]) {
@@ -60,36 +60,37 @@ void handle_graph(std::string path) {
     G.allEdges(edges);
 
 	// call upon graph algorithm
-    reduce_crossings(GA, nodes, edges, width, height);
-
-	// terminal output
+//    reduce_crossings(GA, nodes, edges, width, height);
+//
+//	// terminal output
     std::cout << "-------------------------------------" << std::endl;
 	std::cout << "Graph: " << path << std::endl;
-	std::cout << all_crossings(GA, nodes, edges) << " crossing(s)!" 
-              << std::endl;
-    std::cout << all_node_crossings(GA, nodes, edges) << " node crossing(s)!"
-              << std::endl;
-    std::cout << all_node_overlaps(GA, nodes) << " overlap(s)!" << std::endl;
-    if (!upward_facing(GA, edges))
-        std::cout << "Not upward facing!" << std::endl;
-    if (!within_box(GA, nodes, height, width))
-        std::cout << "Not within box!" << std::endl;
-
-    // save graph in json format 
-    uint32_t id;
-    for (node n : nodes) {
-        id = GA.idNode(n);
-        // just in case they aren't sorted
-        json["nodes"][id]["x"] = (int32_t) GA.x(n);
-        json["nodes"][id]["y"] = (int32_t) GA.y(n);
-    } 
-    
-    path.replace(path.end()-4, path.end(), "out.json");
-	std::ofstream out(path, std::ifstream::binary);
-    out << json;
+	std::cout << G.numberOfEdges() << std::endl;
+//	std::cout << all_crossings(GA, nodes, edges) << " crossing(s)!" 
+//              << std::endl;
+//    std::cout << all_node_crossings(GA, nodes, edges) << " node crossing(s)!"
+//              << std::endl;
+//    std::cout << all_node_overlaps(GA, nodes) << " overlap(s)!" << std::endl;
+//    if (!upward_facing(GA, edges))
+//        std::cout << "Not upward facing!" << std::endl;
+//    if (!within_box(GA, nodes, height, width))
+//        std::cout << "Not within box!" << std::endl;
+//
+//    // save graph in json format 
+//    uint32_t id;
+//    for (node n : nodes) {
+//        id = GA.idNode(n);
+//        // just in case they aren't sorted
+//        json["nodes"][id]["x"] = (int32_t) GA.x(n);
+//        json["nodes"][id]["y"] = (int32_t) GA.y(n);
+//    } 
+//    
+//    path.replace(path.end()-4, path.end(), "out.json");
+//	std::ofstream out(path, std::ifstream::binary);
+//    out << json;
 
     // svg image
-    GraphIO::write(GA, path.append(".svg"), GraphIO::drawSVG);
+    //GraphIO::write(GA, path.append(".svg"), GraphIO::drawSVG);
 }
 
 void traverse_dir(std::string path) {
